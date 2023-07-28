@@ -1,9 +1,11 @@
 #-----------------------------------------------
-#--------- define private funktions ------------
+#--------- define private functions ------------
 #-----------------------------------------------
-function Install-SharepointOnlineModule {
-    #Define the name of the module you want to check/install
-    $ModuleName = "Microsoft.Online.SharePoint.PowerShell"
+function Install-M365OnlineModule {
+    param (
+        [Parameter(Mandatory=$true)]
+        [string]$ModuleName
+    )    
 
     # Check if the module is already installed
     if (Get-Module -ListAvailable -Name $ModuleName) {
@@ -24,7 +26,7 @@ function Install-SharepointOnlineModule {
 }
 
 #-----------------------------------------------
-#---------- define public funktions ------------
+#---------- define public functions ------------
 #-----------------------------------------------
 function Edit-WebpartExportMode {
     <#
@@ -64,7 +66,7 @@ function Edit-WebpartExportMode {
     $adminUrl = [regex]::Replace($SiteUrl, $pattern, "`$1`$2-admin`$3/")
 
     #Modul Installieren falls nötig
-    Install-SharepointOnlineModule
+    Install-M365OnlineModule -ModuleName "Microsoft.Online.SharePoint.PowerShell"
 
     Connect-SPOService -Url $adminurl
     Set-SPOSite $siteURL -DenyAddAndCustomizePages 0
@@ -73,5 +75,40 @@ function Edit-WebpartExportMode {
     }
     catch {
         Write-Output "Site $sitename not updated, error"
+    }
+}
+
+function Set-ExchangeOnlineSettings {
+    <#
+        .Synopsis
+        RMD Standard Exchange Online Settings.
+
+        .Description
+        RMD Standard Exchange Online Settings.
+     
+        .Example
+        # Input example
+        Set-ExchangeOnlineSettings
+    #>
+    [CmdletBinding()]
+    param (
+        
+    )    
+    begin {
+        Install-M365OnlineModule -ModuleName "ExchangeOnlineManagement"
+        Connect-ExchangeOnline
+    }
+    
+    process {
+        Get-Mailbox | Set-MailboxRegionalConfiguration -Language 2055 -TimeZone "W. Europe Standard Time" -LocalizeDefaultFolderName
+
+        $users = Get-Mailbox -Resultsize Unlimited
+        foreach ($user in $users) {
+            Write-Output -ForegroundColor green "Setting permission for $($user.alias)..."
+            Set-MailboxFolderPermission -Identity "$($user.alias):\kalender" -User Default -AccessRights Reviewer
+        }
+        # Zweimal nötig, damit die Einstellung wirklich hilft.
+        Set-OrganizationConfig -FocusedInboxOn $false
+        Set-OrganizationConfig -FocusedInboxOn $false
     }
 }
