@@ -1,6 +1,3 @@
-#Webpart Export Mode
-#Module Initialisation
-
 function Install-SharepointOnlineModule {
     #Define the name of the module you want to check/install
     $ModuleName = "Microsoft.Online.SharePoint.PowerShell"
@@ -22,36 +19,53 @@ function Install-SharepointOnlineModule {
         }
     }    
 }
+function Set-WebpartExportMode {
+    <#
+        .Synopsis
+        Fixes the Veeam M365 Backup error. Cannot Change Web Part Export Mode.
 
-#sites abfragen
-$logEntry = Read-Host "Log Eintrag eingeben"
+        .Description
+        Automatically fixes the error.
 
-# Define a regular expression pattern to match the site URL
-$pattern = "https:\/\/([^.]+\.sharepoint\.com)\/sites\/([^/\s]+)"
+        .PARAMETER LogEntry
+        Paste here the complete Veeam M365 Backup error.
 
-# Use the Select-String cmdlet to find matches based on the pattern
-$matches = $logEntry | Select-String -Pattern $pattern -AllMatches | ForEach-Object { $_.Matches }
+        .Example
+        # Input example
+        Show-Calendar
+    #>
+    param (
+        [Parameter(Mandatory=$true)]
+        [string]$logEntry
+    )
 
-# Loop through each match and print the results
-foreach ($match in $matches) {
-    $siteURL = $match.Groups[0].Value
-    $siteName = $match.Groups[2].Value
-}
+    # Define a regular expression pattern to match the site URL
+    $pattern = "https:\/\/([^.]+\.sharepoint\.com)\/sites\/([^/\s]+)"
 
-# Define the regular expression pattern to match the domain in the source URL
-$pattern = "(https?://)([^/]+?)(?:-admin)?(\.sharepoint\.com)/.*"
+    # Use the Select-String cmdlet to find matches based on the pattern
+    $patternmatches = $logEntry | Select-String -Pattern $pattern -AllMatches | ForEach-Object { $_.Matches }
 
-# Use the regular expression to replace the domain and everything after ".com/" in the source URL
-$adminUrl = [regex]::Replace($SiteUrl, $pattern, "`$1`$2-admin`$3/")
+    # Loop through each match and print the results
+    foreach ($match in $patternmatches) {
+        $siteURL = $match.Groups[0].Value
+        $siteName = $match.Groups[2].Value
+    }
 
-#Modul Installieren falls nötig
-Install-SharepointOnlineModule
+    # Define the regular expression pattern to match the domain in the source URL
+    $pattern = "(https?://)([^/]+?)(?:-admin)?(\.sharepoint\.com)/.*"
 
-Connect-SPOService -Url $adminurl
-Set-SPOSite $siteURL -DenyAddAndCustomizePages 0
-try {
-    Write-Host "Site $siteurl successfully updated"
-}
-catch {
-    Write-Host "Site $sitename not updated, error"
+    # Use the regular expression to replace the domain and everything after ".com/" in the source URL
+    $adminUrl = [regex]::Replace($SiteUrl, $pattern, "`$1`$2-admin`$3/")
+
+    #Modul Installieren falls nötig
+    Install-SharepointOnlineModule
+
+    Connect-SPOService -Url $adminurl
+    Set-SPOSite $siteURL -DenyAddAndCustomizePages 0
+    try {
+        Write-Host "Site $siteurl successfully updated"
+    }
+    catch {
+        Write-Host "Site $sitename not updated, error"
+    }
 }
