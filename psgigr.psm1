@@ -1,25 +1,32 @@
+#-----------------------------------------------
+#--------- define private funktions ------------
+#-----------------------------------------------
 function Install-SharepointOnlineModule {
     #Define the name of the module you want to check/install
     $ModuleName = "Microsoft.Online.SharePoint.PowerShell"
 
     # Check if the module is already installed
     if (Get-Module -ListAvailable -Name $ModuleName) {
-            Write-Host "The '$ModuleName' module is already installed."
+            Write-Output "The '$ModuleName' module is already installed."
     }
     else {
-        Write-Host "The '$ModuleName' module is not installed. Installing..."
+        Write-Output "The '$ModuleName' module is not installed. Installing..."
         
         # Try to install the module using the PowerShellGet module (requires PowerShell 5.0+)
         try {
             Install-Module -Name $ModuleName -Force -AllowClobber -Scope CurrentUser -ErrorAction Stop
-            Write-Host "Module '$ModuleName' has been installed successfully."
+            Write-Output "Module '$ModuleName' has been installed successfully."
         }
         catch {
-            Write-Host "Failed to install the module '$ModuleName'. Error: $_"
+            Write-Output "Failed to install the module '$ModuleName'. Error: $_"
         }
     }    
 }
-function Set-WebpartExportMode {
+
+#-----------------------------------------------
+#---------- define public funktions ------------
+#-----------------------------------------------
+function Edit-WebpartExportMode {
     <#
         .Synopsis
         Fixes the Veeam M365 Backup error. Cannot Change Web Part Export Mode.
@@ -36,9 +43,11 @@ function Set-WebpartExportMode {
     #>
     param (
         [Parameter(Mandatory=$true)]
-        [string]$logEntry
+        [string]$logEntry,
+        # Pattern
+        [Parameter(Mandatory=$true)]
+        [string]$pattern
     )
-
     # Define a regular expression pattern to match the site URL
     $pattern = "https:\/\/([^.]+\.sharepoint\.com)\/sites\/([^/\s]+)"
 
@@ -63,9 +72,9 @@ function Set-WebpartExportMode {
     Connect-SPOService -Url $adminurl
     Set-SPOSite $siteURL -DenyAddAndCustomizePages 0
     try {
-        Write-Host "Site $siteurl successfully updated"
+        Write-Output "Site $siteurl successfully updated"
     }
     catch {
-        Write-Host "Site $sitename not updated, error"
+        Write-Output "Site $sitename not updated, error"
     }
 }
