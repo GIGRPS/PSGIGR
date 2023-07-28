@@ -43,10 +43,7 @@ function Edit-WebpartExportMode {
     #>
     param (
         [Parameter(Mandatory=$true)]
-        [string]$logEntry,
-        # Pattern
-        [Parameter(Mandatory=$true)]
-        [string]$pattern
+        [string]$logEntry
     )
     # Define a regular expression pattern to match the site URL
     $pattern = "https:\/\/([^.]+\.sharepoint\.com)\/sites\/([^/\s]+)"
