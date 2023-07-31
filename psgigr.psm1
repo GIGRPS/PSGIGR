@@ -1,4 +1,4 @@
-#-----------------------------------------------
+﻿#-----------------------------------------------
 #--------- define private functions ------------
 #-----------------------------------------------
 function Install-M365OnlineModule {
@@ -155,3 +155,63 @@ function Set-UserHomePermission {
         }
     }
 }
+
+<#function New-DCInstallation {
+    [CmdletBinding()]
+    param (
+
+    )
+    
+    begin {
+        Write-Output Current Hostname: $env:COMPUTERNAME
+        $ishostnameset = Read-Host "Hostname korrekt? (ja/nein)" 
+        if($ishostnameset -eq "nein"){
+            Write-Output Bitte zuerst Hostname vergeben und dann das Script ausführen.soll
+            Exit
+        }
+        #TBD - 
+        ipconfig /all
+
+        $ip = Read-Host "Stimmen die IP Einstellungen? (ja/nein)"
+        if($ip -eq "nein"){
+            Get-NetAdapter | Sort-Object -Property Name | Format-Table Name,InterfaceDescription,Status
+            $Netadapter = Read-Host "Welcher Adapter soll bearbeitet werden?"
+            $IPadress = Read-Host "Wie lautet die IP Adresse?"
+            $Subnetz = Read-Host "Wie lautet die Subnetzmaske?"
+            $Gateway = Read-Host "Wie lautet der Gateway?"
+
+            netsh interface ip set address name=$Netadapter static $IPadress $Subnetz $Gateway
+            netsh interface ip set dns $Netadapter static 8.8.8.8
+        } else {
+            $IPadress = (Get-NetIPConfiguration | Where-Object {
+                $_.NetAdapter.Status -ne "Disconnected" -and 
+                $null -ne $_.IPv4DefaultGateway}
+                ).IPv4Address.IPAddress
+        }
+        #Features installieren
+        $installdchp = Read-Host "DHCP Installieren? ja/nein"
+        #AD Informationen abfragen
+        $netbios = Read-Host "NETBIOS Name"
+        $domain = Read-Host "Domain Name"
+        $dsrmpw = Read-Host "DSRM Passwort"
+        $dsrmpw = ConvertTo-SecureString $dsrmpw -AsPlainText -Force
+    }  
+    process {
+        if($installdchp -eq "ja"){
+        Install-WindowsFeature AD-Domain-Services,DNS,DHCP -IncludeManagementTools
+        }
+        else {
+            Install-WindowsFeature AD-Domain-Services,DNS -IncludeManagementTools
+        }
+        #AD
+        #Domäne installieren
+        Install-ADDSForest -DomainName $domain -Domainnetbiosname $netbios -InstallDns:$true -SafeModeAdministratorPassword $dsrmpw
+
+        #DNS zu sich selbst
+        netsh interface ip set dns $Netadapter static $IPadress
+    }
+    
+    end {
+        
+    }
+}#>
