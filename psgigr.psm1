@@ -78,7 +78,7 @@ function Edit-WebpartExportMode {
     }
 }
 
-function Set-ExchangeOnlineSettings {
+function Set-ExchangeOnlineSetting {
     <#
         .Synopsis
         RMD Standard Exchange Online Settings.
@@ -98,7 +98,7 @@ function Set-ExchangeOnlineSettings {
         Install-M365OnlineModule -ModuleName "ExchangeOnlineManagement"
         Connect-ExchangeOnline
     }
-    
+        
     process {
         Get-Mailbox | Set-MailboxRegionalConfiguration -Language 2055 -TimeZone "W. Europe Standard Time" -LocalizeDefaultFolderName
 
@@ -110,5 +110,48 @@ function Set-ExchangeOnlineSettings {
         # Zweimal nötig, damit die Einstellung wirklich hilft.
         Set-OrganizationConfig -FocusedInboxOn $false
         Set-OrganizationConfig -FocusedInboxOn $false
+    }
+}
+
+function Set-UserHomePermission {
+    <#
+        .Synopsis
+        Grants all Users Full Access in der Homes Folder.
+
+        .Description
+        Grants all Users Full Access in der Homes Folder.
+
+        .PARAMETER Homespath
+        Path to the Rootfolder of the Userhomes.
+
+        .Example
+        # Input example
+        Set-UserhomePermission -homespath "D:\Userdata\Homes\"
+    #>
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory=$true)]
+        [string]$homespath
+    )
+    
+    begin {
+        #Initalize Variables
+        $userfolders = Get-ChildItem $homespath
+        $AccessType = "Allow"
+        $Access = "FullControl"
+        $inheritance  = "ContainerInherit,ObjectInherit"
+
+    }
+    
+    process {
+        #Schlaufe für alle Ordner in den Homes
+        foreach ($userpath in $userfolders){
+            $upn = $userpath.Name
+            $userhomepath = "$homespath\$upn"
+            $acl = Get-Acl $userhomepath
+            $AccessRule = New-Object System.Security.AccessControl.FileSystemAccessRule("$env:userdomain\$upn", $Access, $inheritance, "None", $AccessType)
+            $acl.SetAccessRule($AccessRule)
+            $acl | Set-Acl $userhomepath
+        }
     }
 }
