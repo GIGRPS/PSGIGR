@@ -7,3 +7,8 @@ Installation with Powershell
 Install-Module PSGIGR
 Import-Module PSGIGR
 ```
+
+# Commands
+All Commands explained
+
+## Testcommand
