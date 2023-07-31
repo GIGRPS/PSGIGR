@@ -19,7 +19,10 @@ Edit-WebpartExportMode -logEntry [Complete Log of the Error]
 
 ## Set-ExchangeOnlineSetting
 This command sets Exchange Online Defaults for each user. 
-*Settings to be added.
+Settings:
+- Language "Deutsch/Schweiz" and TimeZone W. Europe Standard Time
+- Default Calendar Permissions "Reviewer" as Default
+- Deactivate Focused Inbox for each user
 ```powershell
 Set-ExchangeOnlineSetting
 ```
