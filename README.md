@@ -1,5 +1,5 @@
 # PSGIGR
-Powershell Repository by Gian
+Powershell Repository by Gian. Personal Powershell Workbench.
 
 ## Installation
 Installation with Powershell
