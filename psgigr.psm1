@@ -225,3 +225,134 @@ function New-DCInstallation {
         Get-NetAdapter | Set-DnsClientServerAddress -ServerAddresses $ipaddress
     }
 }
+function Set-DCConfiguration {
+    <#
+        .Synopsis
+        Set-DCConfiguration
+
+        .Description
+        Set-DCConfiguration
+
+        .PARAMETER networkid
+        Set Networkid example: 192.168.1
+
+        .PARAMETER dnsredirect
+        DNS Server Redirect
+
+        .PARAMETER ouCustomer
+        Main OU Name
+
+        .Example
+        # Input example
+        Set-DCConfiguration -networkid 192.168.1 -dnsredirect 1.1.1.1 -ouCustomer "SBB"
+    #>
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory=$true)]
+        [string]$networkid,
+        [Parameter(Mandatory=$true)]
+        [string]$dnsredirect,
+        [Parameter(Mandatory=$true)]
+        [string]$ouCustomer
+    )
+    
+    begin {
+        function CreateADFrastructure {
+            $dnDom = (Get-ADDomain).DistinguishedName
+            New-ADOrganizationalUnit -Name $ouCustomer -Path $dnDom
+            $dnCustomer = "OU=$ouCustomer,$dnDom"
+        
+            ###
+            # OU Structure
+            ###
+        
+            ##
+            # Main (Infrastructure) OU
+            $ouMain = "Infrastruktur Shared Cloud"
+            New-ADOrganizationalUnit -Name $ouMain -Path $dnCustomer
+            $dnMain = "OU=$ouMain,$dnCustomer"
+            ##
+        
+            ##
+            # Servers
+            $ouServers = "Servers"
+            New-ADOrganizationalUnit -Name $ouServers -Path $dnMain
+            $dnServers = "OU=$ouServers,$dnMain"
+            ##
+        
+            @(
+            "Memberservers",
+            "Terminalservers"
+            ) | ForEach-Object {New-ADOrganizationalUnit -Name $_ -Path $dnServers}
+        
+            ##
+            # Groups
+            $ouGroups = "Groups"
+            New-ADOrganizationalUnit -Name $ouGroups -Path $dnMain
+            $dnGroups = "OU=$ouGroups,$dnMain"
+            ##
+        
+            @(
+            "Access",
+            "Applications",
+            "Citrix",
+            "Drives",
+            "KDS",
+            "Mail",
+            "Printers",
+            "Roles",
+            "Service Groups"
+            ) | ForEach-Object {New-ADOrganizationalUnit -Name $_ -Path $dnGroups}
+        
+            #
+        
+            ##
+            # Accounts
+            $ouAccounts = "Accounts"
+            New-ADOrganizationalUnit -Name $ouAccounts -Path $dnMain
+            $dnAccounts = "OU=$ouAccounts,$dnMain"
+            ##
+        
+            @(
+            "Administrators",
+            "Service Accounts",
+            "Users"
+            ) | ForEach-Object {New-ADOrganizationalUnit -Name $_ -Path $dnAccounts}
+        }
+        $domain = $env:USERDNSDOMAIN
+    }
+    
+    process {
+        #Set Time Sync
+        w32tm /config /update /manualpeerlist:"ch.pool.ntp.org,0x8" /syncfromflags:MANUAL
+        #Set Timezone
+        Set-TimeZone -Id "W. Europe Standard Time"
+        #Enable AD Recycle Bin
+        Enable-ADOptionalFeature -Identity 'Recycle Bin Feature' -Scope ForestOrConfigurationSet -Target $domain
+        #Disable Spooler
+        Set-Service "Spooler" -StartupType Disabled
+        #Restrict Domain Joins per User
+        Set-ADDomain $domain -Replace @{"ms-ds-MachineAccountQuota"="2"}
+        #DNS Settings
+        Set-DnsServerScavenging -ScavengingInterval 7.00:00:00 -ScavengingState $true
+        Set-DnsServerForwarder -IPAddress $dnsredirect
+
+        #DNS Reverselookupzone
+        $networkidandsubnet = $networkid + ".0/24"
+        $array = $networkid.Split(".")
+        $reversenetworkid = $array[2] + "." + $array[1] + "." + $array[0]
+        $reversezonename = $reversenetworkid + ".in-addr.arpa"
+        Add-DnsServerPrimaryZone -NetworkId $networkidandsubnet -ReplicationScope forest
+
+        #DNSSEC
+        Invoke-DnsServerZoneSign -ZoneName $domain -SignWithDefault -Force
+        Invoke-DnsServerZoneSign -ZoneName $reversezonename -SignWithDefault -Force
+
+        #Create OU structure
+        CreateADFrastructure
+    }
+
+    end {
+        
+    }
+}

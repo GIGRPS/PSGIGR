@@ -38,3 +38,9 @@ Setup a new Active Directory on the Server
 ```powershell
 New-DCInstallation -ipaddress [IP] -subnetadress [SubnetID] -gateway [defaultgateway] -NETBIOS [NETBIOS Name] -DomainName [FQDN of the Domain] -DSRMPW [DRSM Password] -DHCP [If required $true]
 ```
+
+## Set-DCConfiguration
+Configure the Active Directory
+```powershell
+Set-DCConfiguration -networkid [Networkid ex. 192.168.1] -dnsredirect [1.1.1.1] -ouCustomer [SBB]
+```
