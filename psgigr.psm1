@@ -156,62 +156,72 @@ function Set-UserHomePermission {
     }
 }
 
-<#function New-DCInstallation {
+function New-DCInstallation {
+    <#
+        .Synopsis
+        Performs a DC Installation.
+
+        .Description
+        Performs a DC Installation.
+
+        .PARAMETER ipaddress
+        IP Address of the Server and Primary DNS Server after the installation.
+
+        .PARAMETER subetadress
+        Subnet ex. 24 means 255.255.255.0
+
+        .PARAMETER gateway
+        Default Gateway for the Server
+
+        .PARAMETER NETBIOS
+        NETBIOS Name of the new domain
+
+        .PARAMETER DomainName
+        Fully Qualified Domain Name
+
+        .PARAMETER DSRMPW 
+        Defines the DSRM Password
+
+        .PARAMETER DHCP
+        Set this to $true if you want the feature DHCP Server installed.
+
+        .Example
+        # Input 
+        New-DCInstallation -ipaddress 192.168.1.11 -subnetadress 24 -gateway 192.168.1.1 -NETBIOS CONTOSO -DomainName contoso.com -DSRMPW Test123 -DHCP $true
+    #>
     [CmdletBinding()]
     param (
-
+        [Parameter(Mandatory=$true)]
+        [string]$ipaddress,
+        [Parameter(Mandatory=$true)]
+        [string]$subetaddress,
+        [Parameter(Mandatory=$true)]
+        [string]$gateway,
+        [Parameter(Mandatory=$true)]
+        [string]$NETBIOS,
+        [Parameter(Mandatory=$true)]
+        [string]$DomainName,
+        [Parameter(Mandatory=$true)]
+        [string]$DSRMPW,
+        [bool]$DHCP
     )
     
-    begin {
-        Write-Output Current Hostname: $env:COMPUTERNAME
-        $ishostnameset = Read-Host "Hostname korrekt? (ja/nein)" 
-        if($ishostnameset -eq "nein"){
-            Write-Output Bitte zuerst Hostname vergeben und dann das Script ausführen.soll
-            Exit
-        }
-        #TBD - 
-        ipconfig /all
-
-        $ip = Read-Host "Stimmen die IP Einstellungen? (ja/nein)"
-        if($ip -eq "nein"){
-            Get-NetAdapter | Sort-Object -Property Name | Format-Table Name,InterfaceDescription,Status
-            $Netadapter = Read-Host "Welcher Adapter soll bearbeitet werden?"
-            $IPadress = Read-Host "Wie lautet die IP Adresse?"
-            $Subnetz = Read-Host "Wie lautet die Subnetzmaske?"
-            $Gateway = Read-Host "Wie lautet der Gateway?"
-
-            netsh interface ip set address name=$Netadapter static $IPadress $Subnetz $Gateway
-            netsh interface ip set dns $Netadapter static 8.8.8.8
-        } else {
-            $IPadress = (Get-NetIPConfiguration | Where-Object {
-                $_.NetAdapter.Status -ne "Disconnected" -and 
-                $null -ne $_.IPv4DefaultGateway}
-                ).IPv4Address.IPAddress
-        }
-        #Features installieren
-        $installdchp = Read-Host "DHCP Installieren? ja/nein"
-        #AD Informationen abfragen
-        $netbios = Read-Host "NETBIOS Name"
-        $domain = Read-Host "Domain Name"
-        $dsrmpw = Read-Host "DSRM Passwort"
-        $dsrmpw = ConvertTo-SecureString $dsrmpw -AsPlainText -Force
+    begin { 
+        #DefineIP Address
+        Get-NetAdapter | New-NetIPAddress -IPAddress $ipaddress -PrefixLength $subetaddress -DefaultGateway $gateway
+        Get-NetAdapter | Set-DnsClientServerAddress -ServerAddresses 8.8.8.8
     }  
     process {
-        if($installdchp -eq "ja"){
+        $DSRMPWSec = $DSRMPW | ConvertTo-SecureString -AsPlainText -Force
+        if($dhcp -eq "$true"){
         Install-WindowsFeature AD-Domain-Services,DNS,DHCP -IncludeManagementTools
         }
         else {
             Install-WindowsFeature AD-Domain-Services,DNS -IncludeManagementTools
         }
-        #AD
-        #Domäne installieren
-        Install-ADDSForest -DomainName $domain -Domainnetbiosname $netbios -InstallDns:$true -SafeModeAdministratorPassword $dsrmpw
-
-        #DNS zu sich selbst
-        netsh interface ip set dns $Netadapter static $IPadress
-    }
-    
+        Install-ADDSForest -DomainName $DomainName -Domainnetbiosname $netbios -InstallDns:$true -SafeModeAdministratorPassword $DSRMPWSec
+    }    
     end {
-        
+        Get-NetAdapter | Set-DnsClientServerAddress -ServerAddresses $ipaddress
     }
-}#>
+}
