@@ -32,3 +32,9 @@ This command gives each user full access in his homefolder.
 ```powershell
 Set-UserHomePermission -homespath [Path to Userhomes]
 ```
+
+## New-DCInstallation
+Setup a new Active Directory on the Server
+```powershell
+New-DCInstallation -ipaddress [IP] -subnetadress [SubnetID] -gateway [defaultgateway] -NETBIOS [NETBIOS Name] -DomainName [FQDN of the Domain] -DSRMPW [DRSM Password] -DHCP [If required $true]
+```
