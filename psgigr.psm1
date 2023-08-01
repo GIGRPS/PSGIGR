@@ -194,7 +194,7 @@ function New-DCInstallation {
         [Parameter(Mandatory=$true)]
         [string]$ipaddress,
         [Parameter(Mandatory=$true)]
-        [string]$subetaddress,
+        [string]$subnetaddress,
         [Parameter(Mandatory=$true)]
         [string]$gateway,
         [Parameter(Mandatory=$true)]
@@ -208,7 +208,7 @@ function New-DCInstallation {
     
     begin { 
         #DefineIP Address
-        Get-NetAdapter | New-NetIPAddress -IPAddress $ipaddress -PrefixLength $subetaddress -DefaultGateway $gateway
+        Get-NetAdapter | New-NetIPAddress -IPAddress $ipaddress -PrefixLength $subnetaddress -DefaultGateway $gateway
         Get-NetAdapter | Set-DnsClientServerAddress -ServerAddresses 8.8.8.8
     }  
     process {
