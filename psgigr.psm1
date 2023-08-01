@@ -1,4 +1,4 @@
-#-----------------------------------------------
+﻿#-----------------------------------------------
 #--------- define private functions ------------
 #-----------------------------------------------
 function Install-M365OnlineModule {
@@ -153,5 +153,206 @@ function Set-UserHomePermission {
             $acl.SetAccessRule($AccessRule)
             $acl | Set-Acl $userhomepath
         }
+    }
+}
+
+function New-DCInstallation {
+    <#
+        .Synopsis
+        Performs a DC Installation.
+
+        .Description
+        Performs a DC Installation.
+
+        .PARAMETER ipaddress
+        IP Address of the Server and Primary DNS Server after the installation.
+
+        .PARAMETER subnetadress
+        Subnet ex. 24 means 255.255.255.0
+
+        .PARAMETER gateway
+        Default Gateway for the Server
+
+        .PARAMETER NETBIOS
+        NETBIOS Name of the new domain
+
+        .PARAMETER DomainName
+        Fully Qualified Domain Name
+
+        .PARAMETER DSRMPW 
+        Defines the DSRM Password
+
+        .PARAMETER DHCP
+        Set this to $true if you want the feature DHCP Server installed.
+
+        .Example
+        # Input 
+        New-DCInstallation -ipaddress 192.168.1.11 -subnetadress 24 -gateway 192.168.1.1 -NETBIOS CONTOSO -DomainName contoso.com -DSRMPW Test123 -DHCP $true
+    #>
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory=$true)]
+        [string]$ipaddress,
+        [Parameter(Mandatory=$true)]
+        [string]$subnetaddress,
+        [Parameter(Mandatory=$true)]
+        [string]$gateway,
+        [Parameter(Mandatory=$true)]
+        [string]$NETBIOS,
+        [Parameter(Mandatory=$true)]
+        [string]$DomainName,
+        [Parameter(Mandatory=$true)]
+        [string]$DSRMPW,
+        [bool]$DHCP
+    )
+    
+    begin { 
+        #DefineIP Address
+        Get-NetAdapter | New-NetIPAddress -IPAddress $ipaddress -PrefixLength $subnetaddress -DefaultGateway $gateway
+        Get-NetAdapter | Set-DnsClientServerAddress -ServerAddresses 8.8.8.8
+    }  
+    process {
+        $DSRMPWSec = $DSRMPW | ConvertTo-SecureString -AsPlainText -Force
+        if($dhcp -eq "$true"){
+        Install-WindowsFeature AD-Domain-Services,DNS,DHCP -IncludeManagementTools
+        }
+        else {
+            Install-WindowsFeature AD-Domain-Services,DNS -IncludeManagementTools
+        }
+        Install-ADDSForest -DomainName $DomainName -Domainnetbiosname $netbios -InstallDns:$true -SafeModeAdministratorPassword $DSRMPWSec
+    }    
+    end {
+        Get-NetAdapter | Set-DnsClientServerAddress -ServerAddresses $ipaddress
+    }
+}
+function Set-DCConfiguration {
+    <#
+        .Synopsis
+        Set-DCConfiguration
+
+        .Description
+        Set-DCConfiguration
+
+        .PARAMETER networkid
+        Set Networkid example: 192.168.1
+
+        .PARAMETER dnsredirect
+        DNS Server Redirect
+
+        .PARAMETER ouCustomer
+        Main OU Name
+
+        .Example
+        # Input example
+        Set-DCConfiguration -networkid 192.168.1 -dnsredirect 1.1.1.1 -ouCustomer "SBB"
+    #>
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory=$true)]
+        [string]$networkid,
+        [Parameter(Mandatory=$true)]
+        [string]$dnsredirect,
+        [Parameter(Mandatory=$true)]
+        [string]$ouCustomer
+    )
+    
+    begin {
+        function CreateADFrastructure {
+            $dnDom = (Get-ADDomain).DistinguishedName
+            New-ADOrganizationalUnit -Name $ouCustomer -Path $dnDom
+            $dnCustomer = "OU=$ouCustomer,$dnDom"
+        
+            ###
+            # OU Structure
+            ###
+        
+            ##
+            # Main (Infrastructure) OU
+            $ouMain = "Infrastruktur Shared Cloud"
+            New-ADOrganizationalUnit -Name $ouMain -Path $dnCustomer
+            $dnMain = "OU=$ouMain,$dnCustomer"
+            ##
+        
+            ##
+            # Servers
+            $ouServers = "Servers"
+            New-ADOrganizationalUnit -Name $ouServers -Path $dnMain
+            $dnServers = "OU=$ouServers,$dnMain"
+            ##
+        
+            @(
+            "Memberservers",
+            "Terminalservers"
+            ) | ForEach-Object {New-ADOrganizationalUnit -Name $_ -Path $dnServers}
+        
+            ##
+            # Groups
+            $ouGroups = "Groups"
+            New-ADOrganizationalUnit -Name $ouGroups -Path $dnMain
+            $dnGroups = "OU=$ouGroups,$dnMain"
+            ##
+        
+            @(
+            "Access",
+            "Applications",
+            "Citrix",
+            "Drives",
+            "KDS",
+            "Mail",
+            "Printers",
+            "Roles",
+            "Service Groups"
+            ) | ForEach-Object {New-ADOrganizationalUnit -Name $_ -Path $dnGroups}
+        
+            #
+        
+            ##
+            # Accounts
+            $ouAccounts = "Accounts"
+            New-ADOrganizationalUnit -Name $ouAccounts -Path $dnMain
+            $dnAccounts = "OU=$ouAccounts,$dnMain"
+            ##
+        
+            @(
+            "Administrators",
+            "Service Accounts",
+            "Users"
+            ) | ForEach-Object {New-ADOrganizationalUnit -Name $_ -Path $dnAccounts}
+        }
+        $domain = $env:USERDNSDOMAIN
+    }
+    
+    process {
+        #Set Time Sync
+        w32tm /config /update /manualpeerlist:"ch.pool.ntp.org,0x8" /syncfromflags:MANUAL
+        #Set Timezone
+        Set-TimeZone -Id "W. Europe Standard Time"
+        #Enable AD Recycle Bin
+        Enable-ADOptionalFeature -Identity 'Recycle Bin Feature' -Scope ForestOrConfigurationSet -Target $domain
+        #Disable Spooler
+        Set-Service "Spooler" -StartupType Disabled
+        #Restrict Domain Joins per User
+        Set-ADDomain $domain -Replace @{"ms-ds-MachineAccountQuota"="2"}
+        #DNS Settings
+        Set-DnsServerScavenging -ScavengingInterval 7.00:00:00 -ScavengingState $true
+        Set-DnsServerForwarder -IPAddress $dnsredirect
+
+        #DNS Reverselookupzone
+        $networkidandsubnet = $networkid + ".0/24"
+        $array = $networkid.Split(".")
+        $reversenetworkid = $array[2] + "." + $array[1] + "." + $array[0]
+        $reversezonename = $reversenetworkid + ".in-addr.arpa"
+        Add-DnsServerPrimaryZone -NetworkId $networkidandsubnet -ReplicationScope forest
+
+        #DNSSEC
+        Invoke-DnsServerZoneSign -ZoneName $domain -SignWithDefault -Force
+        Invoke-DnsServerZoneSign -ZoneName $reversezonename -SignWithDefault -Force
+
+        #Create OU structure
+        CreateADFrastructure
+    }
+
+    end {
+        
     }
 }
