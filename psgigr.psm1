@@ -167,7 +167,7 @@ function New-DCInstallation {
         .PARAMETER ipaddress
         IP Address of the Server and Primary DNS Server after the installation.
 
-        .PARAMETER subetadress
+        .PARAMETER subnetadress
         Subnet ex. 24 means 255.255.255.0
 
         .PARAMETER gateway
