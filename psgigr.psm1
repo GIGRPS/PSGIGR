@@ -10,6 +10,7 @@ function Install-M365OnlineModule {
     # Check if the module is already installed
     if (Get-Module -ListAvailable -Name $ModuleName) {
             Write-Output "The '$ModuleName' module is already installed."
+            Import-Module -Name $ModuleName
     }
     else {
         Write-Output "The '$ModuleName' module is not installed. Installing..."
@@ -17,6 +18,7 @@ function Install-M365OnlineModule {
         # Try to install the module using the PowerShellGet module (requires PowerShell 5.0+)
         try {
             Install-Module -Name $ModuleName -Force -AllowClobber -Scope CurrentUser -ErrorAction Stop
+            Import-Module -Name $ModuleName
             Write-Output "Module '$ModuleName' has been installed successfully."
         }
         catch {
@@ -104,7 +106,7 @@ function Set-ExchangeOnlineSetting {
 
         $users = Get-Mailbox -Resultsize Unlimited
         foreach ($user in $users) {
-            Write-Output -ForegroundColor green "Setting permission for $($user.alias)..."
+            Write-Output "Setting permission for $($user.alias)..."
             Set-MailboxFolderPermission -Identity "$($user.alias):\kalender" -User Default -AccessRights Reviewer
         }
         # Zweimal nötig, damit die Einstellung wirklich hilft.

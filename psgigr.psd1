@@ -12,7 +12,7 @@
 RootModule = 'psgigr'
 
 # Version number of this module.
-ModuleVersion = '0.0.6'
+ModuleVersion = '0.0.8'
 
 # Supported PSEditions
 # CompatiblePSEditions = @()
@@ -42,7 +42,7 @@ PowerShellVersion = '5.0'
 # PowerShellHostVersion = '5.0'
 
 # Minimum version of Microsoft .NET Framework required by this module. This prerequisite is valid for the PowerShell Desktop edition only.
-# DotNetFrameworkVersion = ''
+DotNetFrameworkVersion = '4.8'
 
 # Minimum version of the common language runtime (CLR) required by this module. This prerequisite is valid for the PowerShell Desktop edition only.
 # ClrVersion = ''
