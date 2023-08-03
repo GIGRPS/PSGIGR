@@ -43,7 +43,7 @@ function Edit-WebpartExportMode {
 
         .Example
         # Input example
-        Show-Calendar
+        Edit-WebpartExportMode -logEntry [LogEntry]
     #>
     param (
         [Parameter(Mandatory=$true)]
@@ -71,8 +71,8 @@ function Edit-WebpartExportMode {
     Install-M365OnlineModule -ModuleName "Microsoft.Online.SharePoint.PowerShell"
 
     Connect-SPOService -Url $adminurl
-    Set-SPOSite $siteURL -DenyAddAndCustomizePages 0
     try {
+        Set-SPOSite $siteURL -DenyAddAndCustomizePages 0
         Write-Output "Site $siteurl successfully updated"
     }
     catch {
