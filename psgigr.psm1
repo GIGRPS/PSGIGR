@@ -358,3 +358,25 @@ function Set-DCConfiguration {
         
     }
 }
+function Convert-Cert {
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory=$true)]
+        [string]$Quelldatei,
+        [Parameter(Mandatory=$true)]
+        [string]$PEMdatei,
+        [Parameter(Mandatory=$true)]
+        [string]$KEYdatei
+    )
+    begin {
+        Install-M365OnlineModule -ModuleName "PSKI"
+    }    
+    process {
+        Convert-PfxToPem -InputFile $Quelldatei -Outputfile $PEMdatei
+
+        (Get-Content $PEMdatei -Raw) -match "(?ms)(\s*((?<privatekey>-----BEGIN PRIVATE KEY-----.*?-----END PRIVATE KEY-----)|(?<certificate>-----BEGIN CERTIFICATE-----.*?-----END CERTIFICATE-----))\s*){2}"
+
+        $Matches["privatekey"] | Set-Content $KEYdatei
+        $Matches["certificate"] | Set-Content $PEMdatei
+    }
+}
