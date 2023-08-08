@@ -59,3 +59,11 @@ Configure the Active Directory
 ```powershell
 Set-DCConfiguration -networkid [Networkid ex. 192.168.1] -dnsredirect [1.1.1.1] -ouCustomer [SBB]
 ```
+
+### Convert-Cert
+
+Split a PFX File into PEM and KEY files
+
+```powershell
+Convert-Cert -Quelldatei "C:\Temp\cert.pfx" -PEMdatei "C:\Temp\cert.pem" -KEYdatei "C:\Temp\cert.key"
+```

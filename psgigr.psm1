@@ -359,6 +359,26 @@ function Set-DCConfiguration {
     }
 }
 function Convert-Cert {
+    <#
+        .Synopsis
+        Split PFX Cert into PEM and KEY
+
+        .Description
+        Split PFX Cert into PEM and KEY
+
+        .PARAMETER Quelldatei
+        Source file to convert
+
+        .PARAMETER PEMdatei
+        Destination for the PEM File
+
+        .PARAMETER KEYdatei
+        Destination for the KEY File
+
+        .Example
+        # Input example
+        Convert-Cert -Quelldatei "C:\Temp\cert.pfx" -PEMdatei "C:\Temp\cert.pem" -KEYdatei "C:\Temp\cert.key"
+    #>
     [CmdletBinding()]
     param (
         [Parameter(Mandatory=$true)]
