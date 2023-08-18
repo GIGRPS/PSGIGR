@@ -26,6 +26,14 @@ function Install-M365OnlineModule {
         }
     }    
 }
+Function Get-RandomCharacter {
+    param (
+        [string]$characters
+    )
+    # Get one random character
+    $randomIndex = Get-Random -Minimum 0 -Maximum ($characters.Length - 1)
+    return $characters[$randomIndex]
+}
 
 #-----------------------------------------------
 #---------- define public functions ------------
@@ -398,5 +406,103 @@ function Convert-Cert {
 
         $Matches["privatekey"] | Set-Content $KEYdatei
         $Matches["certificate"] | Set-Content $PEMdatei
+    }
+}
+Function Get-RMDRandomPasswordUser {
+    [CmdletBinding()]
+    param (
+        [int]$length = 12
+    )
+    Begin {
+        # Define lower- uppercase, special characters, numbers
+        $lowercase = "abcdefghijklmnopqrstuvwxyz"
+        $uppercase = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+        $specialChars = "!@#$%^&*()_+=<>?"
+        $numbers = "0123456789"
+        $separators = "-_"
+        
+        # Define Password
+        $password = ""
+    }
+    Process {
+        # Add 4 uppercase Letters
+        $password += Get-RandomCharacter -characters $uppercase
+        $password += Get-RandomCharacter -characters $uppercase
+        $password += Get-RandomCharacter -characters $uppercase
+        $password += Get-RandomCharacter -characters $uppercase
+        # Add separator
+        $password += Get-RandomCharacter -characters $separators
+        # Add 4 lowercase Letters
+        $password += Get-RandomCharacter -characters $lowercase
+        $password += Get-RandomCharacter -characters $lowercase
+        $password += Get-RandomCharacter -characters $lowercase
+        $password += Get-RandomCharacter -characters $lowercase
+        # Add separator
+        $password += Get-RandomCharacter -characters $separators
+        # Add 2 numbers
+        $password += Get-RandomCharacter -characters $numbers
+        $password += Get-RandomCharacter -characters $numbers
+        # Add 2 special characters
+        $password += Get-RandomCharacter -characters $specialChars
+        $password += Get-RandomCharacter -characters $specialChars
+    }
+    End {
+        Return $password
+    }
+}
+Function Get-RMDRandomPasswordAdmin {
+    [CmdletBinding()]
+    param (
+        [int]$length = 12
+    )
+    Begin {
+        # Define lower- uppercase, special characters, numbers
+        $lowercase = "abcdefghijklmnopqrstuvwxyz"
+        $uppercase = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+        $specialChars = "!@#$%^&*()-+=<>?"
+        $numbers = "0123456789"
+        $separators = "_-"
+
+        # Define Password
+        $password = ""
+    }
+    Process {
+        # Add 3 numbers
+        $password += Get-RandomCharacter -characters $numbers
+        $password += Get-RandomCharacter -characters $numbers
+        $password += Get-RandomCharacter -characters $numbers
+        # Add separator
+        $password += Get-RandomCharacter -characters $separators
+        # Add 3 lowercase letters
+        $password += Get-RandomCharacter -characters $lowercase
+        $password += Get-RandomCharacter -characters $lowercase
+        $password += Get-RandomCharacter -characters $lowercase
+        # Add separator
+        $password += Get-RandomCharacter -characters $separators
+        # Add 3 uppercase letters
+        $password += Get-RandomCharacter -characters $uppercase
+        $password += Get-RandomCharacter -characters $uppercase
+        $password += Get-RandomCharacter -characters $uppercase
+        # Add separator
+        $password += Get-RandomCharacter -characters $separators
+        # Add 3 special characters
+        $password += Get-RandomCharacter -characters $specialChars
+        $password += Get-RandomCharacter -characters $specialChars
+        $password += Get-RandomCharacter -characters $specialChars
+        # Add separator
+        $password += Get-RandomCharacter -characters $separators
+        # Add 3 numbers
+        $password += Get-RandomCharacter -characters $numbers
+        $password += Get-RandomCharacter -characters $numbers
+        $password += Get-RandomCharacter -characters $numbers
+        # Add separator
+        $password += Get-RandomCharacter -characters $separators
+        # Add 3 uppercase letters
+        $password += Get-RandomCharacter -characters $uppercase
+        $password += Get-RandomCharacter -characters $uppercase
+        $password += Get-RandomCharacter -characters $uppercase
+    }
+    End {
+        Return $password
     }
 }
